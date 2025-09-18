@@ -1,1 +1,119 @@
-
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "iteration": 1628600926295,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(airflow_task_duration_seconds_count[5m]))",
+          "interval": "",
+          "legendFormat": "tasks/sec",
+          "refId": "A"
+        }
+      ],
+      "title": "Airflow task throughput (count / 5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum(increase(airflow_task_failures_total[1h]))",
+          "interval": "",
+          "legendFormat": "failures/hr",
+          "refId": "B"
+        }
+      ],
+      "title": "Task failures (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum(rate(process_cpu_seconds_total[5m])) by (instance)",
+          "interval": "",
+          "legendFormat": "{{instance}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Container CPU usage (rate)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": ["mediflow", "airflow"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Mediflow Airflow Overview",
+  "uid": "mediflow-airflow-overview",
+  "version": 1
+}
