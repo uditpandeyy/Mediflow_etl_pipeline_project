@@ -1,1 +1,106 @@
+#!/usr/bin/env python3
+"""
+Read data/transformed/transformed_from_dag.csv and write simplified processed CSVs used by loaders:
+ - data/processed/patients.csv
+ - data/processed/encounters.csv
+ - data/processed/lab_results.csv
 
+Run from repo root:
+python scripts/process_to_processed.py
+"""
+import os
+import pandas as pd
+import uuid
+from datetime import datetime
+
+ROOT = os.path.dirname(os.path.dirname(__file__))
+TRANS_DIR = os.path.join(ROOT, "data", "transformed")
+OUT_DIR = os.path.join(ROOT, "data", "processed")
+os.makedirs(OUT_DIR, exist_ok=True)
+
+TRANS_FILE = os.path.join(TRANS_DIR, "transformed_from_dag.csv")
+if not os.path.exists(TRANS_FILE):
+    raise SystemExit("transformed_from_dag.csv not found. Run transform_to_transformed.py first.")
+
+df = pd.read_csv(TRANS_FILE)
+
+# Patients: unique by anonymized MRN (anon_mrn)
+patients = df[["anon_mrn", "patient_name", "date_of_birth", "gender", "phone", "email", "mrn"]].drop_duplicates("anon_mrn").copy()
+patients = patients.rename(columns={
+    "anon_mrn": "mrn_hash",
+    "patient_name": "full_name",
+    "mrn": "raw_mrn"
+})
+# create patient_id UUIDs (stable mapping using hash of mrn_hash)
+def stable_uuid(hexstring):
+    # Use sha-like deterministic mapping: uuid5 of DNS namespace with mrn_hash
+    import uuid as _uuid
+    return str(_uuid.uuid5(_uuid.NAMESPACE_DNS, str(hexstring)))
+
+patients["patient_id"] = patients["mrn_hash"].apply(stable_uuid)
+patients = patients[["patient_id", "raw_mrn", "full_name", "date_of_birth", "gender", "phone", "email"]]
+
+# Encounters: unique by encounter_id (if missing, create new uuid)
+enc = df[["encounter_id", "encounter_date", "diagnosis_code", "provider", "mrn"]].drop_duplicates("encounter_id").copy()
+def ensure_uuid(val):
+    try:
+        uuid_obj = uuid.UUID(str(val))
+        return str(uuid_obj)
+    except Exception:
+        return str(uuid.uuid4())
+
+import uuid
+def map_encounter_id(x):
+    if pd.isna(x) or x == "":
+        return str(uuid.uuid4())
+    # if looks numeric, prefix with 'enc-' to avoid uuid issues
+    s = str(x)
+    if len(s) < 20 and s.isdigit():
+        return str(uuid.uuid5(uuid.NAMESPACE_DNS, "encounter-" + s))
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, s))
+
+enc["encounter_id_uuid"] = enc["encounter_id"].fillna("").apply(map_encounter_id)
+# map patient_id via mrn -> patients table
+mrn_to_pid = dict(zip(patients["raw_mrn"], patients["patient_id"]))
+enc["patient_id"] = enc["mrn"].map(lambda m: mrn_to_pid.get(m, None))
+encounters = enc[["encounter_id_uuid", "patient_id", "encounter_date", "diagnosis_code", "provider"]].rename(columns={
+    "encounter_id_uuid": "encounter_id",
+    "encounter_date": "admission_date",
+    "diagnosis_code": "primary_diagnosis",
+})
+
+# Lab results: map to patient_id and encounter_id
+labs = df[["lab_id", "encounter_id", "test_name", "value", "unit", "lab_date", "mrn"]].copy()
+# Map encounter_id to UUID where possible (use same mapping function as above)
+enc_map = dict(zip(enc["encounter_id"], enc["encounter_id_uuid"]))
+def map_enc_id(e):
+    if pd.isna(e) or e == "":
+        return None
+    s = str(e)
+    if s in enc_map:
+        return enc_map[s]
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, s))
+
+labs["encounter_id_mapped"] = labs["encounter_id"].fillna("").apply(map_enc_id)
+labs["patient_id"] = labs["mrn"].map(lambda m: mrn_to_pid.get(m, None))
+labs["result_value"] = labs["value"]
+labs["result_date"] = pd.to_datetime(labs["lab_date"], errors="coerce").dt.date
+labs["result_id"] = labs.apply(lambda r: str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{r.lab_id}-{r.test_name}-{r.result_date}")), axis=1)
+
+lab_results = labs[["result_id", "lab_id", "patient_id", "encounter_id_mapped", "test_name", "result_value", "unit", "result_date"]].rename(columns={
+    "encounter_id_mapped": "encounter_id",
+    "unit": "units"
+})
+
+# Write CSV artifacts
+patients_path = os.path.join(OUT_DIR, "patients.csv")
+encounters_path = os.path.join(OUT_DIR, "encounters.csv")
+lab_results_path = os.path.join(OUT_DIR, "lab_results.csv")
+
+patients.to_csv(patients_path, index=False)
+encounters.to_csv(encounters_path, index=False)
+lab_results.to_csv(lab_results_path, index=False)
+
+print(f"Wrote patients: {patients_path} ({len(patients)} rows)")
+print(f"Wrote encounters: {encounters_path} ({len(encounters)} rows)")
+print(f"Wrote lab_results: {lab_results_path} ({len(lab_results)} rows)")
