@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+*.env
+
+# Airflow
+logs/
+airflow.cfg
+unittests.cfg
+webserver_config.py
+
+# Docker
+*.log
+*.pid
+*.db
+docker/airflow/logs/
+
+# Jupyter / IPython
+.ipynb_checkpoints
+
+# System
+.DS_Store
+Thumbs.db
