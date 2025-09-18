@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""
+Read data/raw/*, perform deterministic anonymization + normalization,
+write results to data/transformed/transformed_from_dag.csv and transformed.csv
+
+Run from repo root:
+python scripts/transform_to_transformed.py
+"""
+import os
+import glob
+import pandas as pd
+from hashlib import sha256
+
+ROOT = os.path.dirname(os.path.dirname(__file__))
+RAW_DIR = os.path.join(ROOT, "data", "raw")
+OUT_DIR = os.path.join(ROOT, "data", "transformed")
+os.makedirs(OUT_DIR, exist_ok=True)
+
+def anonymize_mrn(mrn: str) -> str:
+    if pd.isna(mrn) or mrn == "":
+        return ""
+    return sha256(mrn.encode("utf8")).hexdigest()
+
+def normalize_name(name: str):
+    if pd.isna(name):
+        return ""
+    return name.strip()
+
+def load_latest_csv(pattern):
+    matches = sorted(glob.glob(os.path.join(RAW_DIR, pattern)))
+    return matches[-1] if matches else None
+
+def main():
+    # load latest EHR and labs CSVs (if present)
+    ehr_file = load_latest_csv("ehr_raw_*.csv")
+    labs_file = load_latest_csv("labs_raw_*.csv")
+
+    if ehr_file is None and labs_file is None:
+        raise SystemExit("No raw files found in data/raw/. Run extract_to_raw first.")
+
+    ehr_df = pd.read_csv(ehr_file) if ehr_file else pd.DataFrame()
+    labs_df = pd.read_csv(labs_file) if labs_file else pd.DataFrame()
+
+    # Normalize and anonymize EHR
+    if not ehr_df.empty:
+        ehr_df["mrn"] = ehr_df["mrn"].astype(str).fillna("")
+        ehr_df["anon_mrn"] = ehr_df["mrn"].apply(anonymize_mrn)
+        ehr_df["patient_name"] = ehr_df["patient_name"].apply(normalize_name)
+        ehr_df["date_of_birth"] = pd.to_datetime(ehr_df["dob"], errors="coerce").dt.date
+        ehr_df = ehr_df.rename(columns={"encounter_id": "encounter_id_raw"})
+    else:
+        ehr_df = pd.DataFrame(columns=[
+            "mrn","anon_mrn","patient_name","date_of_birth","gender","phone","email","encounter_id_raw","encounter_date","diagnosis_code","provider"
+        ])
+
+    # Normalize labs & join to EHR by encounter or MRN if available
+    if not labs_df.empty:
+        labs_df = labs_df.rename(columns={"patient_mrn": "mrn"})
+        labs_df["mrn"] = labs_df["mrn"].astype(str).fillna("")
+        labs_df["anon_mrn"] = labs_df["mrn"].apply(anonymize_mrn)
+        labs_df["lab_date"] = pd.to_datetime(labs_df["lab_date"], errors="coerce").dt.date
+    else:
+        labs_df = pd.DataFrame(columns=["lab_id","encounter_id","test_name","value","unit","lab_date","mrn","anon_mrn"])
+
+    # Build a transformed flat table (example structure used later by loaders)
+    # Prefer join on encounter_id where possible, else fall back to anon_mrn
+    merged = labs_df.merge(
+        ehr_df,
+        left_on="encounter_id",
+        right_on="encounter_id_raw",
+        how="left",
+        suffixes=("", "_ehr")
+    )
+
+    # if encounter join failed, attempt join on anon_mrn
+    missing_enc = merged[merged["patient_name"].isna()]
+    if not missing_enc.empty:
+        fallback = missing_enc.merge(
+            ehr_df,
+            left_on="anon_mrn",
+            right_on="anon_mrn",
+            how="left",
+            suffixes=("", "_ehr")
+        )
+        # replace rows
+        merged.update(fallback)
+
+    # Final transformed columns & rename for load scripts
+    transformed = merged[[
+        "lab_id", "encounter_id", "test_name", "value", "unit", "lab_date",
+        "anon_mrn", "encounter_date", "diagnosis_code", "provider",
+        "patient_name", "date_of_birth", "gender", "mrn", "phone", "email"
+    ]].copy()
+
+    # Write two artifacts used earlier in the pipeline
+    out1 = os.path.join(OUT_DIR, "transformed_from_dag.csv")
+    out2 = os.path.join(OUT_DIR, "transformed.csv")
+    transformed.to_csv(out1, index=False)
+    transformed.to_csv(out2, index=False)
+    print(f"Wrote {out1}")
+    print(f"Wrote {out2}")
+    print(f"Rows: {len(transformed)}")
+
+if __name__ == "__main__":
+    main()
