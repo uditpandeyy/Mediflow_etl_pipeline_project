@@ -1,0 +1,18 @@
+# Airflow
+apache-airflow==2.7.1
+
+# Database
+psycopg2-binary==2.9.9
+
+# Data processing
+pandas==2.2.2
+numpy==1.26.4
+
+# Utilities
+python-dotenv==1.0.1
+
+# Monitoring
+prometheus-client==0.20.0
+
+# Testing
+pytest==8.2.2
