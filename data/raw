@@ -1,1 +1,44 @@
+#!/usr/bin/env python3
+"""
+Create example raw data CSVs under data/raw/
+Run from repo root: python scripts/extract_to_raw.py
+"""
+import os
+import csv
+from datetime import datetime
 
+ROOT = os.path.dirname(os.path.dirname(__file__))
+OUT_DIR = os.path.join(ROOT, "data", "raw")
+os.makedirs(OUT_DIR, exist_ok=True)
+
+# Example inbound EHR CSV
+ehr_rows = [
+    ["mrn", "patient_name", "dob", "gender", "phone", "email", "encounter_id", "encounter_date", "diagnosis_code", "provider"],
+    ["0704c3ef7c6aded1c42457...", "Alice Smith", "1985-03-12", "F", "XXX-XXX-XXXX", "a***@example.com", "101", "2025-09-02", "A01.0", "dr. patel"],
+    ["5e12a52dc6506786b1ebb5...", "Bob Johnson", "1978-07-04", "M", "XXX-XXX-XXXX", "b***@example.com", "102", "2025-09-07", "B20", "dr. kumar"],
+]
+
+labs_rows = [
+    ["lab_id", "encounter_id", "test_name", "value", "unit", "lab_date", "patient_mrn"],
+    ["1001", "101", "Hemoglobin", "13.5", "g/dl", "2025-09-03", "0704c3ef7c6aded1c42457..."],
+    ["1002", "102", "Cholesterol", "190.0", "mg/dl", "2025-09-08", "5e12a52dc6506786b1ebb5..."],
+    ["1003", "103", "Glucose", "95.0", "mg/dl", "2025-09-11", "0704c3ef7c6aded1c42457..."],
+]
+
+def write_csv(path, rows):
+    with open(path, "w", newline="", encoding="utf8") as f:
+        w = csv.writer(f)
+        for r in rows:
+            w.writerow(r)
+
+def main():
+    ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ehr_path = os.path.join(OUT_DIR, f"ehr_raw_{ts}.csv")
+    labs_path = os.path.join(OUT_DIR, f"labs_raw_{ts}.csv")
+    write_csv(ehr_path, ehr_rows)
+    write_csv(labs_path, labs_rows)
+    print(f"Wrote {ehr_path}")
+    print(f"Wrote {labs_path}")
+
+if __name__ == "__main__":
+    main()
