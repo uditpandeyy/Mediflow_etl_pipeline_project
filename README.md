@@ -110,23 +110,30 @@ pytest tests/
 ## ⚙️ Troubleshooting
 
 - **Airflow "database not initialized"**  
-  👉 Run:  
-  ```bash
-  docker compose exec airflow-init airflow db init
+  👉 Run: `docker compose exec airflow-init airflow db init`
 
-Prometheus config error → ensure prometheus.yml path is valid in docker-compose.yml.
-Grafana no dashboards → ensure grafana/provisioning is mounted correctly.
+- **Permission denied: `/opt/airflow/logs`**  
+  👉 Fix permissions: `sudo chmod -R 777 docker/airflow/logs`
 
-### 🛡️ Security Notes
+- **Prometheus config error**  
+  👉 Ensure `prometheus.yml` path is valid in `docker-compose.yml`.
 
-Never commit .env with real credentials.
-Use strong values for SECRET_KEY and FERNET_KEY.
-For production, store secrets in Vault, AWS Secrets Manager, or Kubernetes Secrets.
+- **Grafana shows no dashboards**  
+  👉 Verify `grafana/provisioning` is mounted correctly.
 
+---
 
+## 🔐 Security Notes
 
-👤 Author
-Udit Pandey
+- Never commit `.env` with real credentials.  
+- Use strong values for `SECRET_KEY` and `FERNET_KEY`.  
+- For production, store secrets in **Vault**, **AWS Secrets Manager**, or **Kubernetes Secrets**.
+
+---
+
+## 👤 Author
+
+**Udit Pandey**  
 Computer Engineering Graduate | Data & Software Projects
 
 ---
