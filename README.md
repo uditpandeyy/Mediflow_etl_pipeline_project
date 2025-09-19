@@ -51,17 +51,16 @@ mediflow-etl-pipeline/
 ## 🚀 Getting Started (Local Development)
 
 ### 1. Clone repo
-```bash
 git clone https://github.com/<your-username>/mediflow-etl-pipeline.git
 cd mediflow-etl-pipeline
 
-2. Setup Python environment
+### 2. Setup Python environment
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-3. Environment variables
+### 3. Environment variables
 
 Copy .env.example → .env and update with real values:
 
@@ -75,7 +74,7 @@ Load them:
 
 export $(grep -v '^#' .env | xargs)
 
-4. Start Airflow & services
+### 4. Start Airflow & services
 cd docker/airflow
 docker compose up -d
 
@@ -91,13 +90,12 @@ docker compose exec airflow-webserver airflow users create \
   --email admin@example.com \
   --password admin
 
-5. Build ETL images (if using DockerOperator)
+### 5. Build ETL images (if using DockerOperator)
 docker build -t mediflow-extract:latest docker/extract
 docker build -t mediflow-transform:latest docker/transform
 docker build -t mediflow-load:latest docker/load
 
-🌐 Access Services
-
+### 🌐 Access Services
 Airflow UI: http://localhost:8080
 
 login → admin / admin
@@ -108,80 +106,60 @@ login → admin / admin
 
 Prometheus: http://localhost:9090
 
-⚙️ Running ETL manually (without Airflow)
+### ⚙️ Running ETL manually (without Airflow)
 
-Extract:
-
+### Extract:
 python scripts/extract.py
 
-
-Transform:
-
+### Transform:
 python scripts/transform.py
 
-
-Load:
-
+### Load:
 python scripts/load.py
 
-🧪 Run Tests
+### 🧪 Run Tests
 pytest tests/
 
-📊 Monitoring
-
+### 📊 Monitoring
 Metrics are exported to Prometheus.
-
 Dashboards are available in Grafana (docker/airflow/grafana/dashboards/airflow_dashboard.json).
-
 You can import the JSON into Grafana or let provisioning handle it.
 
-🛠 Troubleshooting
-
+### 🛠 Troubleshooting
 service "airflow-webserver" is not running
-Check logs:
-
+### Check logs:
 docker compose logs airflow-webserver
-
 
 Usually caused by DB not being initialized (airflow db init) or permission issues with mounted logs/.
 
-Log permission errors
+### Log permission errors
 Ensure docker/airflow/logs/ is writable by container UID (default 50000):
 
 sudo chown -R 50000:0 docker/airflow/logs
 
 
-Prometheus config errors
+### Prometheus config errors
 Ensure prometheus.yml is a valid file and mapped correctly in docker-compose.yml.
 
-📄 Requirements
-
+### 📄 Requirements
 See requirements.txt
 . Includes:
-
 apache-airflow==2.7.1
-
 pandas
-
 sqlalchemy
-
 psycopg2-binary
-
 prometheus-client
-
 pytest
-
 docker
 
-🔐 Security
-
+### 🔐 Security
 Do not commit .env with real secrets.
 
 Use AIRFLOW__CORE__FERNET_KEY in production.
 
 Manage secrets via Vault / AWS SSM for production.
 
-📌 Roadmap
+### 📌 Roadmap
 
  Local Airflow DAGs
 
@@ -193,15 +171,8 @@ Manage secrets via Vault / AWS SSM for production.
 
  Add Kubernetes deployment
 
-👤 Author
-
+### 👤 Author
 Udit Pandey
-Computer Engineering Student | Data Science & ETL Projects
-
-📜 License
-
-This project is licensed under the MIT License – see LICENSE
- for details.
-
+Computer Science Engineering Graduate | Data Science & ETL Projects
 
 ---
