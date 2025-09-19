@@ -88,28 +88,31 @@ python scripts/load.py
 pytest tests/
 ```
 
-### 📊 Monitoring Setup
+## 📊 Monitoring Setup
 
-Prometheus scrapes Airflow and system metrics (prometheus.yml config).
+- **Prometheus** scrapes Airflow and system metrics (see `prometheus.yml` config).
+- **Grafana** dashboard (`airflow_dashboard.json`) provides:
+  - DAG run stats  
+  - Task durations  
+  - Success/failure counts  
 
-Grafana dashboard (airflow_dashboard.json) visualizes:
+---
 
-DAG run stats
+## 📂 Required Files Before Running
 
-Task durations
+- `.env.example` → copy to `.env` and set your secrets.  
+- `.gitkeep` in `data/raw`, `data/processed`, `data/transformed` → keeps empty dirs tracked in Git.  
+- `docker/extract`, `docker/transform`, `docker/load` → used if running ETL via DockerOperator.  
+- `docker/airflow/init.sql` → optional, for initializing DB schema manually.  
 
-Success/failure counts
+---
 
-### 📁 Required Files Before Running
-.env.example (placeholder secrets) → create your .env file from this.
-.gitkeep in data/raw, data/processed, data/transformed to keep dirs in Git.
-docker/extract, docker/transform, docker/load (if running ETL via DockerOperator).
-docker/airflow/init.sql if initializing DB schema manually.
+## ⚙️ Troubleshooting
 
-### ⚙️ Troubleshooting
-- ** Airflow "database not initialized" ** → run docker compose exec airflow-init airflow db init.
-- ** Permission denied: /opt/airflow/logs → fix log folder permissions:**
-- ** sudo chmod -R 777 docker/airflow/logs**
+- **Airflow "database not initialized"**  
+  👉 Run:  
+  ```bash
+  docker compose exec airflow-init airflow db init
 
 Prometheus config error → ensure prometheus.yml path is valid in docker-compose.yml.
 Grafana no dashboards → ensure grafana/provisioning is mounted correctly.
