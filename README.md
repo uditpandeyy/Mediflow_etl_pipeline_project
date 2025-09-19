@@ -107,10 +107,9 @@ docker/extract, docker/transform, docker/load (if running ETL via DockerOperator
 docker/airflow/init.sql if initializing DB schema manually.
 
 ### ⚙️ Troubleshooting
-
-Airflow "database not initialized" → run docker compose exec airflow-init airflow db init.
-Permission denied: /opt/airflow/logs → fix log folder permissions:
-sudo chmod -R 777 docker/airflow/logs
+- ** Airflow "database not initialized" → run docker compose exec airflow-init airflow db init.
+- ** Permission denied: /opt/airflow/logs → fix log folder permissions:
+- ** sudo chmod -R 777 docker/airflow/logs
 
 Prometheus config error → ensure prometheus.yml path is valid in docker-compose.yml.
 Grafana no dashboards → ensure grafana/provisioning is mounted correctly.
